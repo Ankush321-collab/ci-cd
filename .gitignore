@@ -1,0 +1,7 @@
+.ssh/
+node_modules/
+**/node_modules/
+.env
+**/.env
+.DS_Store
+npm-debug.log*
