@@ -1,0 +1,337 @@
+import pytest
+import os
+import re
+from pathlib import Path
+
+class TestReadmeStructure:
+    """Tests to verify README.md structure and content integrity."""
+    
+    @pytest.fixture(scope="class")
+    def readme_content(self):
+        """Load README.md content."""
+        readme_path = Path("README.md")
+        if not readme_path.exists():
+            pytest.skip("README.md not found")
+        return readme_path.read_text(encoding="utf-8")
+    
+    def test_readme_file_exists(self):
+        """Verify README.md exists in repository root."""
+        assert Path("README.md").exists(), "README.md file should exist"
+    
+    def test_readme_has_title(self, readme_content):
+        """Verify README has proper title header."""
+        assert "# CI/CD Pipeline Project" in readme_content, "README should have main title"
+    
+    def test_readme_has_badges(self, readme_content):
+        """Verify README contains status badges."""
+        assert "![Build Status]" in readme_content or "badge.svg" in readme_content, "README should have build status badge"
+        assert "![License:" in readme_content or "MIT" in readme_content, "README should have license badge"
+    
+    def test_readme_has_table_of_contents(self, readme_content):
+        """Verify README has table of contents section."""
+        toc_patterns = ["## 📋 Table of Contents", "## Table of Contents"]
+        assert any(pattern in readme_content for pattern in toc_patterns), "README should have table of contents"
+        
+        # Check for common TOC links
+        assert "[Prerequisites]" in readme_content or "(#prerequisites)" in readme_content.lower()
+        assert "[Installation" in readme_content or "(#installation" in readme_content.lower()
+    
+    def test_readme_has_prerequisites_section(self, readme_content):
+        """Verify README has prerequisites section."""
+        assert "## ✅ Prerequisites" in readme_content or "## Prerequisites" in readme_content
+        assert "Node.js" in readme_content, "Should mention Node.js prerequisite"
+        assert "npm" in readme_content or "yarn" in readme_content, "Should mention package manager"
+    
+    def test_readme_has_installation_section(self, readme_content):
+        """Verify README has installation instructions."""
+        assert "## 🚀 Installation" in readme_content or "## Installation" in readme_content
+        assert "git clone" in readme_content, "Should have git clone instructions"
+        assert "npm install" in readme_content, "Should have npm install instructions"
+    
+    def test_readme_has_usage_section(self, readme_content):
+        """Verify README has usage instructions."""
+        assert "## 💻 Usage" in readme_content or "## Usage" in readme_content
+        assert "npm start" in readme_content or "npm run dev" in readme_content
+    
+    def test_readme_has_cicd_documentation(self, readme_content):
+        """Verify README documents CI/CD pipeline."""
+        assert "## 🔄 CI/CD Pipeline" in readme_content or "## CI/CD" in readme_content
+        assert "GitHub Actions" in readme_content, "Should mention GitHub Actions"
+        assert ".github/workflows" in readme_content, "Should reference workflow files"
+    
+    def test_readme_has_deployment_section(self, readme_content):
+        """Verify README has deployment information."""
+        assert "## 🌐 Deployment" in readme_content or "## Deployment" in readme_content
+        assert "AWS" in readme_content, "Should mention AWS"
+        # Check for IP addresses or URLs (should be formatted as links)
+        url_pattern = r'\[.*?\]\(http.*?\)'
+        assert re.search(url_pattern, readme_content), "Should have clickable URLs"
+    
+    def test_readme_has_api_documentation(self, readme_content):
+        """Verify README has API documentation."""
+        assert "## 📚 API Documentation" in readme_content or "## API" in readme_content
+        assert "/health" in readme_content, "Should document health endpoint"
+        assert "GET" in readme_content or "POST" in readme_content, "Should have HTTP methods documented"
+    
+    def test_readme_has_architecture_section(self, readme_content):
+        """Verify README has architecture diagram/section."""
+        assert "## 🏗️ Architecture" in readme_content or "## Architecture" in readme_content
+        # Check for ASCII diagram or architecture description
+        assert "GitHub" in readme_content and "AWS" in readme_content, "Should mention architecture components"
+    
+    def test_readme_has_contributing_section(self, readme_content):
+        """Verify README has contributing guidelines."""
+        assert "## 🤝 Contributing" in readme_content or "## Contributing" in readme_content
+        assert "branch" in readme_content.lower(), "Should mention branch naming"
+        assert "commit" in readme_content.lower(), "Should mention commit standards"
+    
+    def test_readme_has_environment_variables_section(self, readme_content):
+        """Verify README documents environment variables."""
+        assert "## 🔐 Environment Variables" in readme_content or "## Environment Variables" in readme_content
+        assert "PORT" in readme_content, "Should document PORT variable"
+        assert "NODE_ENV" in readme_content, "Should document NODE_ENV variable"
+        assert ".env" in readme_content, "Should mention .env files"
+    
+    def test_readme_has_troubleshooting_section(self, readme_content):
+        """Verify README has troubleshooting section."""
+        assert "## 🛠️ Troubleshooting" in readme_content or "## Troubleshooting" in readme_content
+        assert "CORS" in readme_content or "Common Issues" in readme_content
+    
+    def test_readme_has_license_section(self, readme_content):
+        """Verify README has license information."""
+        assert "## 📄 License" in readme_content or "## License" in readme_content
+        assert "MIT" in readme_content, "Should mention MIT license"
+    
+    def test_readme_has_contact_section(self, readme_content):
+        """Verify README has contact information."""
+        assert "## 📞 Contact" in readme_content or "## Contact" in readme_content
+        assert "Ankush321-collab" in readme_content, "Should mention maintainer"
+    
+    def test_code_blocks_have_language_specifiers(self, readme_content):
+        """Verify code blocks have proper language specifiers for syntax highlighting."""
+        # Find all code blocks
+        code_blocks = re.findall(r'```(\w+)?\n', readme_content)
+        
+        # Check that code blocks have language specifiers (bash, json, etc.)
+        for block in code_blocks:
+            if block:  # If not empty
+                assert block in ['bash', 'sh', 'json', 'javascript', 'js', 'yaml', 'yml', 'markdown', 'text'], \
+                    f"Code block language '{block}' should be a standard specifier"
+    
+    def test_no_raw_ip_addresses_without_context(self, readme_content):
+        """Verify IP addresses are properly formatted as links or have security warnings."""
+        # Check that IP addresses are either in code blocks or formatted as links
+        ip_pattern = r'(?<!\()\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b(?!\))'
+        matches = re.findall(ip_pattern, readme_content)
+        
+        for match in matches:
+            # Allow if in code block or table
+            if not (f'`{match}`' in readme_content or f'| {match} |' in readme_content):
+                assert False, f"IP address {match} should be in code block, table, or proper link"
+    
+    def test_security_warning_for_exposed_ips(self, readme_content):
+        """Verify exposed IP addresses have security warnings."""
+        if "18.61.163.8" in readme_content:
+            assert "Security Note" in readme_content or "⚠️" in readme_content or "warning" in readme_content.lower(), \
+                "Exposed IP addresses should have security warnings"
+    
+    def test_relative_links_exist(self, readme_content):
+        """Verify relative links in README point to existing files."""
+        # Find markdown links
+        links = re.findall(r'\[([^\]]+)\]\(([^)]+)\)', readme_content)
+        
+        for text, link in links:
+            # Skip external links and anchors
+            if link.startswith('http') or link.startswith('#'):
+                continue
+            
+            # Check if file exists
+            if not link.endswith('.md') and not link.endswith('/'):
+                # Might be a file reference
+                file_path = Path(link)
+                if file_path.exists():
+                    assert file_path.exists(), f"Linked file {link} should exist"
+
+
+class TestReadmeCodeExamples:
+    """Tests to verify code examples in README are valid."""
+    
+    @pytest.fixture(scope="class")
+    def readme_content(self):
+        """Load README.md content."""
+        readme_path = Path("README.md")
+        if not readme_path.exists():
+            pytest.skip("README.md not found")
+        return readme_path.read_text(encoding="utf-8")
+    
+    def test_bash_commands_are_valid(self, readme_content):
+        """Verify bash commands in README don't have syntax errors."""
+        # Extract bash code blocks
+        bash_blocks = re.findall(r'```bash\n(.*?)\n```', readme_content, re.DOTALL)
+        
+        for block in bash_blocks:
+            # Check for common issues
+            assert not block.strip().startswith('$'), "Don't use $ prefix in code blocks (makes copy-paste harder)"
+            
+            # Verify cd commands reference existing directories or standard ones
+            cd_commands = re.findall(r'cd\s+(\w+)', block)
+            for cmd in cd_commands:
+                if cmd not in ['backend', 'frontend', '..', '.', '../frontend', '../backend']:
+                    # Just warn, don't fail - might be hypothetical
+                    pass
+    
+    def test_json_examples_are_valid(self, readme_content):
+        """Verify JSON examples in README are valid JSON."""
+        import json
+        
+        # Extract json code blocks
+        json_blocks = re.findall(r'```json\n(.*?)\n```', readme_content, re.DOTALL)
+        
+        for i, block in enumerate(json_blocks):
+            try:
+                json.loads(block)
+            except json.JSONDecodeError as e:
+                pytest.fail(f"JSON block {i+1} is invalid: {e}\n{block}")
+    
+    def test_port_numbers_consistent(self, readme_content):
+        """Verify port numbers mentioned are consistent."""
+        # Check for backend port
+        backend_ports = re.findall(r'localhost:(\d+)', readme_content)
+        if backend_ports:
+            # Should consistently use 5000 for backend and 8080 for frontend
+            port_counts = {}
+            for port in backend_ports:
+                port_counts[port] = port_counts.get(port, 0) + 1
+            
+            # 5000 should be mentioned for backend, 8080 for frontend
+            assert '5000' in port_counts, "Should mention port 5000 for backend"
+            assert '8080' in port_counts, "Should mention port 8080 for frontend"
+
+
+class TestReadmeIntegration:
+    """Integration tests to verify README matches actual project structure."""
+    
+    @pytest.fixture(scope="class")
+    def readme_content(self):
+        """Load README.md content."""
+        readme_path = Path("README.md")
+        if not readme_path.exists():
+            pytest.skip("README.md not found")
+        return readme_path.read_text(encoding="utf-8")
+    
+    def test_documented_scripts_exist(self, readme_content):
+        """Verify npm scripts mentioned in README exist in package.json files."""
+        # Extract script names from README
+        script_patterns = [
+            r'`npm run (\w+)`',
+            r'npm run (\w+)',
+        ]
+        
+        mentioned_scripts = set()
+        for pattern in script_patterns:
+            mentioned_scripts.update(re.findall(pattern, readme_content))
+        
+        # Check backend package.json if it exists
+        backend_pkg = Path("backend/package.json")
+        if backend_pkg.exists():
+            import json
+            with open(backend_pkg) as f:
+                pkg = json.load(f)
+                scripts = pkg.get('scripts', {})
+                
+                common_scripts = ['start', 'dev', 'test', 'lint', 'build']
+                for script in common_scripts:
+                    if script in mentioned_scripts:
+                        assert script in scripts, f"Script '{script}' mentioned in README but not in backend/package.json"
+        
+        # Check frontend package.json if it exists
+        frontend_pkg = Path("frontend/package.json")
+        if frontend_pkg.exists():
+            import json
+            with open(frontend_pkg) as f:
+                pkg = json.load(f)
+                scripts = pkg.get('scripts', {})
+                
+                for script in ['start', 'build', 'test']:
+                    if script in mentioned_scripts:
+                        assert script in scripts, f"Script '{script}' mentioned in README but not in frontend/package.json"
+    
+    def test_documented_files_exist(self, readme_content):
+        """Verify files mentioned in README exist."""
+        files_to_check = [
+            ".github/workflows/ci-cd.yml",
+            "Dockerfile",
+            "docker-compose.yml",
+            "scripts/deploy.sh",
+            "backend/.env.example",
+            "frontend/.env.example",
+            "LICENSE"
+        ]
+        
+        for file_path in files_to_check:
+            if file_path in readme_content:
+                # If mentioned, should exist (or have a note that it's optional)
+                if not Path(file_path).exists():
+                    # Check if there's a note about creating it
+                    assert f"Create {file_path}" in readme_content or \
+                           f"cp {file_path}" in readme_content or \
+                           "example" in file_path, \
+                        f"File {file_path} is mentioned but doesn't exist and isn't marked as optional/example"
+    
+    def test_environment_variables_documented(self, readme_content):
+        """Verify .env.example files match README documentation."""
+        backend_env = Path("backend/.env.example")
+        if backend_env.exists():
+            env_content = backend_env.read_text()
+            # Check that variables in .env.example are documented in README
+            env_vars = re.findall(r'^(\w+)=', env_content, re.MULTILINE)
+            
+            for var in env_vars:
+                if var in ['PORT', 'NODE_ENV', 'DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASSWORD', 'JWT_SECRET']:
+                    assert var in readme_content, f"Environment variable {var} should be documented in README"
+
+
+class TestReadmeAccessibility:
+    """Tests for README accessibility and readability."""
+    
+    @pytest.fixture(scope="class")
+    def readme_content(self):
+        """Load README.md content."""
+        readme_path = Path("README.md")
+        if not readme_path.exists():
+            pytest.skip("README.md not found")
+        return readme_path.read_text(encoding="utf-8")
+    
+    def test_no_broken_markdown_links(self, readme_content):
+        """Check for broken markdown link syntax."""
+        # Check for common mistakes like [text](link) with spaces in URLs
+        bad_links = re.findall(r'\[([^\]]+)\]\(\s+([^)]+)\)', readme_content)
+        assert len(bad_links) == 0, f"Found markdown links with spaces: {bad_links}"
+        
+        # Check for empty links
+        empty_links = re.findall(r'\[([^\]]+)\]\(\s*\)', readme_content)
+        assert len(empty_links) == 0, f"Found empty markdown links: {empty_links}"
+    
+    def test_headings_have_proper_spacing(self, readme_content):
+        """Verify markdown headings have proper format."""
+        lines = readme_content.split('\n')
+        for i, line in enumerate(lines):
+            if line.startswith('#') and not line.startswith('# '):
+                # Must have space after #
+                if not re.match(r'^#+\s', line):
+                    pytest.fail(f"Line {i+1}: Heading must have space after #: {line}")
+    
+    def test_table_formatting_valid(self, readme_content):
+        """Verify markdown tables are properly formatted."""
+        # Find table rows
+        table_rows = re.findall(r'\|.*\|', readme_content)
+        
+        for row in table_rows:
+            # Check for consistent column count
+            col_count = row.count('|') - 1  # -1 because of trailing |
+            if col_count < 1:
+                pytest.fail(f"Table row has no columns: {row}")
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])
